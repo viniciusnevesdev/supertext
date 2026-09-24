@@ -17,6 +17,7 @@
         </dict>
       </dict>
     </dict>
+
     <dict>
       <key>WFWorkflowActionIdentifier</key><string>is.workflow.actions.setclipboard</string>
       <key>WFWorkflowActionParameters</key>
@@ -34,14 +35,51 @@
         </dict>
       </dict>
     </dict>
+
+    <dict>
+      <key>WFWorkflowActionIdentifier</key><string>is.workflow.actions.urlencode</string>
+      <key>WFWorkflowActionParameters</key>
+      <dict>
+        <key>UUID</key><string>F2E8DC0B-7ED6-49E2-B5ED-58E5CA305E6A</string>
+        <key>WFEncodeMode</key><string>Encode</string>
+        <key>WFInput</key>
+        <dict>
+          <key>Value</key>
+          <dict>
+            <key>OutputName</key><string>Text from Image</string>
+            <key>OutputUUID</key><string>38E633B3-5B52-4E26-9DD0-FFAD61A0D94A</string>
+            <key>Type</key><string>ActionOutput</string>
+          </dict>
+          <key>WFSerializationType</key><string>WFTextTokenAttachment</string>
+        </dict>
+      </dict>
+    </dict>
+
     <dict>
       <key>WFWorkflowActionIdentifier</key><string>is.workflow.actions.url</string>
       <key>WFWorkflowActionParameters</key>
       <dict>
         <key>UUID</key><string>A4BB67B8-3399-406E-AB2D-8BFB7E055274</string>
-        <key>WFURLActionURL</key><string>https://viniciusnevesdev.github.io/supertext/?apple=clipboard</string>
+        <key>WFURLActionURL</key>
+        <dict>
+          <key>Value</key>
+          <dict>
+            <key>attachmentsByRange</key>
+            <dict>
+              <key>{52, 1}</key>
+              <dict>
+                <key>OutputName</key><string>URL Encoded Text</string>
+                <key>OutputUUID</key><string>F2E8DC0B-7ED6-49E2-B5ED-58E5CA305E6A</string>
+                <key>Type</key><string>ActionOutput</string>
+              </dict>
+            </dict>
+            <key>string</key><string>https://viniciusnevesdev.github.io/supertext/#apple=&#65532;</string>
+          </dict>
+          <key>WFSerializationType</key><string>WFTextTokenString</string>
+        </dict>
       </dict>
     </dict>
+
     <dict>
       <key>WFWorkflowActionIdentifier</key><string>is.workflow.actions.openurl</string>
       <key>WFWorkflowActionParameters</key>
@@ -60,6 +98,7 @@
       </dict>
     </dict>
   </array>
+
   <key>WFWorkflowClientRelease</key><string>2700.0.4</string>
   <key>WFWorkflowClientVersion</key><string>2700.0.4</string>
   <key>WFWorkflowHasOutputFallback</key><false/>
