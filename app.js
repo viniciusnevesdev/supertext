@@ -7,7 +7,7 @@
     mode:q('#modeSelect'), lang:q('#languageSelect'), extra:q('#extraPrecision'), vocab:q('#customVocabulary'), analyze:q('#analyzeButton'),
     prog:q('#progressPanel'), label:q('#progressLabel'), pct:q('#progressPercent'), bar:q('#progressBar'), detail:q('#progressDetail'),
     result:q('#resultSection'), text:q('#resultText'), score:q('#overallScore'), high:q('#highCount'), med:q('#mediumCount'), low:q('#lowCount'),
-    copy:q('#copyButton'), toggle:q('#toggleOverlayButton'), unsure:q('#uncertainPanel'), unsureList:q('#uncertainList'), reviewEditor:q('#reviewEditor'), reviewCrop:q('#reviewCrop'), reviewWord:q('#reviewWord'), reviewConfidence:q('#reviewConfidence'), reviewOptions:q('#reviewOptions'), reviewManual:q('#reviewManual'), reviewSave:q('#reviewSave'), reviewClose:q('#reviewClose'), passes:q('#passesList'), toast:q('#toast'),
+    copy:q('#copyButton'), toggle:q('#toggleOverlayButton'), unsure:q('#uncertainPanel'), unsureList:q('#uncertainList'), reviewEditor:q('#reviewEditor'), reviewCrop:q('#reviewCrop'), reviewWord:q('#reviewWord'), reviewConfidence:q('#reviewConfidence'), reviewOptions:q('#reviewOptions'), reviewManual:q('#reviewManual'), reviewSave:q('#reviewSave'), reviewClose:q('#reviewClose'), learningCount:q('#learningCount'), learningPairs:q('#learningPairs'), clearLearning:q('#clearLearning'), passes:q('#passesList'), toast:q('#toast'),
     shareShortcut:q('#shareShortcutButton'), pasteApple:q('#pasteAppleButton'), appleText:q('#appleText'), compareBadge:q('#appleCompareBadge'), compareSummary:q('#comparisonSummary'), compareDetails:q('#comparisonDetails'), compareDetailsSummary:q('#comparisonDetailsSummary'), compareList:q('#comparisonList')
   };
   const S = { base:null, file:null, worker:null, workerLang:null, running:false, passes:[], words:[], overlay:true, pass:0, passCount:3 };
@@ -21,6 +21,18 @@
   function sim(a,b){ const n=Math.max(norm(a).length,norm(b).length); return n?1-dist(a,b)/n:1; }
   function vocabulary(){ const v=E.vocab.value.split(/[\n,;]+/).map(x=>x.trim()).filter(Boolean); return E.mode.value==='ingredients' ? [...new Set(v.concat(INCI))] : [...new Set(v)]; }
   function vocabFix(text, list){ if(norm(text).length<4)return null; let best=null,score=0; for(const v of list){ if(Math.abs(norm(v).length-norm(text).length)>2)continue; const s=sim(text,v); if(s>score){score=s;best=v;} } return score>=.9?{text:best,score}:null; }
+  const LEARN_KEY='supertexto:learning-v1';
+  function learning(){try{return JSON.parse(localStorage.getItem(LEARN_KEY)||'{}')||{};}catch(_){return {};}}
+  function learnCorrection(from,to){
+    const a=norm(from),b=(to||'').trim();if(!a||!b||a===norm(b))return false;
+    const mem=learning(),key=a+'>'+norm(b),old=mem[key]||{from:a,to:b,count:0};old.to=b;old.count=(old.count||0)+1;old.at=Date.now();mem[key]=old;
+    try{localStorage.setItem(LEARN_KEY,JSON.stringify(mem));return true;}catch(_){return false;}
+  }
+  function learnedFix(text){
+    const n=norm(text);if(!n)return null;const mem=learning();let best=null;
+    for(const x of Object.values(mem)){const s=sim(n,x.from);if(s<.88)continue;const score=s+Math.min(.08,(x.count||1)*.02);if(!best||score>best.score)best={text:x.to,count:x.count||1,score};}
+    return best;
+  }
 
   async function load(file){
     if(!file || !file.type.startsWith('image/')) return toast('Escolha uma imagem válida.');
@@ -59,7 +71,7 @@
   function consensus(passes){
     const clusters=[];for(const w of passes.flatMap(p=>p.words)){let best=null,bd=Infinity;for(const c of clusters){if(c.items.some(x=>x.pass===w.pass)||!sameBox(c.box,w.box))continue;const A=center(c.box),B=center(w.box),d=Math.hypot(A.x-B.x,A.y-B.y);if(d<bd){bd=d;best=c;}}if(best){best.items.push(w);best.box=mergeBox(best.items);}else clusters.push({items:[w],box:{...w.box}});}
     const list=vocabulary();return clusters.map(c=>{const groups=[];for(const w of c.items){let g=groups.find(x=>sim(x.text,w.text)>=.88);if(!g){g={text:w.text,items:[]};groups.push(g);}g.items.push(w);const top=g.items.reduce((a,b)=>a.conf>=b.conf?a:b);g.text=top.text;}
-      groups.forEach(g=>{g.avg=g.items.reduce((s,x)=>s+x.conf,0)/g.items.length;g.weight=g.items.reduce((s,x)=>s+Math.max(15,x.conf),0);g.score=Math.min(100,g.avg*.62+(g.items.length/passes.length)*38);});groups.sort((a,b)=>b.weight-a.weight||b.avg-a.avg);if(!groups.length)return null;let win=groups[0],score=win.score;const vf=vocabFix(win.text,list),existing=vf&&groups.find(g=>norm(g.text)===norm(vf.text));if(existing&&existing.score+8>=score)win=existing;else if(vf&&score<76)win={...win,text:vf.text,score:Math.min(88,score+5)};score=win.score;if(new Set(c.items.map(x=>x.pass)).size===1)score=Math.min(score,54);if(groups[1]&&Math.abs(win.weight-groups[1].weight)<22)score-=8;return {id:Math.random().toString(36).slice(2),text:win.text,confidence:Math.max(0,Math.min(100,score)),box:c.box,alts:groups.slice(0,4).map(g=>({text:g.text,confidence:Math.round(g.score)}))};}).filter(Boolean);
+      groups.forEach(g=>{g.avg=g.items.reduce((s,x)=>s+x.conf,0)/g.items.length;g.weight=g.items.reduce((s,x)=>s+Math.max(15,x.conf),0);g.score=Math.min(100,g.avg*.62+(g.items.length/passes.length)*38);});groups.sort((a,b)=>b.weight-a.weight||b.avg-a.avg);if(!groups.length)return null;let win=groups[0],score=win.score;const vf=vocabFix(win.text,list),existing=vf&&groups.find(g=>norm(g.text)===norm(vf.text));if(existing&&existing.score+8>=score)win=existing;else if(vf&&score<76)win={...win,text:vf.text,score:Math.min(88,score+5)};score=win.score;const learned=learnedFix(win.text);if(learned&&score<88){const candidate=groups.find(g=>norm(g.text)===norm(learned.text));if(candidate||learned.count>=2){win=candidate||{...win,text:learned.text};score=Math.min(92,Math.max(score,candidate?candidate.score:score)+Math.min(12,learned.count*3));}}if(new Set(c.items.map(x=>x.pass)).size===1)score=Math.min(score,54);if(groups[1]&&Math.abs(win.weight-groups[1].weight)<22)score-=8;return {id:Math.random().toString(36).slice(2),text:win.text,confidence:Math.max(0,Math.min(100,score)),box:c.box,alts:groups.slice(0,4).map(g=>({text:g.text,confidence:Math.round(g.score)}))};}).filter(Boolean);
   }
 
   function lines(words){const arr=[...words].sort((a,b)=>a.box.y0-b.box.y0||a.box.x0-b.box.x0),ls=[];for(const w of arr){const cy=(w.box.y0+w.box.y1)/2,h=w.box.y1-w.box.y0;let l=ls.find(x=>Math.abs(x.cy-cy)<=Math.max(x.h,h)*.65);if(!l){l={cy,h,words:[]};ls.push(l);}l.words.push(w);l.cy=(l.cy*(l.words.length-1)+cy)/l.words.length;l.h=Math.max(l.h,h);}ls.sort((a,b)=>a.cy-b.cy);ls.forEach(l=>l.words.sort((a,b)=>a.box.x0-b.box.x0));return ls;}
@@ -73,7 +85,7 @@
     E.reviewWord.textContent=w.text;E.reviewConfidence.textContent=Math.round(w.confidence)+'% confiança';E.reviewManual.value=w.text;E.reviewOptions.innerHTML='';
     const opts=[w.text,...w.alts.map(x=>x.text)].filter((v,i,s)=>v&&s.indexOf(v)===i);
     opts.forEach(v=>{const b=document.createElement('button');b.type='button';b.className='option-chip'+(v===w.text?' selected':'');b.textContent=v;b.onclick=()=>{E.reviewManual.value=v;[...E.reviewOptions.children].forEach(x=>x.classList.toggle('selected',x===b));};E.reviewOptions.appendChild(b);});
-    E.reviewSave.onclick=()=>{const v=E.reviewManual.value.trim();if(v){w.text=v;w.confidence=Math.max(w.confidence,95);E.reviewEditor.classList.add('hidden');render();toast('Correção salva.');}};
+    E.reviewSave.onclick=()=>{const v=E.reviewManual.value.trim();if(v){const before=w.text,learned=learnCorrection(before,v);w.text=v;w.confidence=Math.max(w.confidence,95);E.reviewEditor.classList.add('hidden');render();updateLearningUI();toast(learned?'Correção salva · aprendizado atualizado.':'Correção salva.');}};
     E.reviewEditor.classList.remove('hidden');E.reviewEditor.scrollIntoView({behavior:'smooth',block:'center'});
   }
   function render(){
@@ -95,6 +107,11 @@
   async function restoreImageSession(){
     try{const db=await imageDB();const data=await new Promise((resolve,reject)=>{const tx=db.transaction('data','readonly'),r=tx.objectStore('data').get('lastImage');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});db.close();if(!data||!data.file||Date.now()-data.at>86400000)return false;await load(data.file);return true;}catch(e){console.warn('Não foi possível restaurar a imagem',e);return false;}
   }
+
+  function updateLearningUI(){
+    if(!E.learningCount)return;const mem=learning(),items=Object.values(mem),examples=items.reduce((s,x)=>s+(x.count||1),0);E.learningCount.textContent=examples;E.learningPairs.textContent=items.length;
+  }
+  function clearLearning(){try{localStorage.removeItem(LEARN_KEY);}catch(_){}updateLearningUI();toast('Aprendizado local apagado.');}
 
   function saveSession(){
     if(!S.words.length)return;
@@ -203,6 +220,8 @@
   E.copy.onclick=async()=>{if(!E.text.value.trim())return;try{await navigator.clipboard.writeText(E.text.value);toast('Texto copiado.');}catch(e){E.text.select();document.execCommand('copy');toast('Texto copiado.');}};
   E.toggle.onclick=()=>{S.overlay=!S.overlay;E.overlay.style.display=S.overlay?'':'none';E.toggle.textContent=S.overlay?'Ocultar marcações':'Mostrar marcações';};
   E.reviewClose.onclick=()=>E.reviewEditor.classList.add('hidden');
+  if(E.clearLearning)E.clearLearning.onclick=clearLearning;
+  updateLearningUI();
   E.shareShortcut.onclick=shareToShortcut;
   E.pasteApple.onclick=pasteApple;
   E.appleText.addEventListener('change',()=>{if(E.appleText.value.trim())compareApple();});
