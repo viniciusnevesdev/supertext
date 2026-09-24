@@ -101,15 +101,22 @@
         <details id="comparisonDetails" class="diagnostics comparison-details hidden"><summary id="comparisonDetailsSummary">Ver comparação detalhada</summary><div id="comparisonList" class="comparison-list"></div></details>
       </section>
       <div id="uncertainPanel" class="uncertain-panel hidden">
-        <h3>Trechos para conferir</h3><p>Toque em uma opção para substituir o texto escolhido pelo consenso.</p>
+        <h3>Trechos para conferir</h3><p>Toque numa palavra abaixo ou diretamente na caixa colorida sobre a imagem.</p>
         <div id="uncertainList" class="uncertain-list"></div>
       </div>
+      <section id="reviewEditor" class="review-editor hidden">
+        <div class="review-head"><div><div class="eyebrow">CORREÇÃO VISUAL</div><h3 id="reviewWord">Trecho</h3><span id="reviewConfidence"></span></div><button id="reviewClose" type="button" aria-label="Fechar">×</button></div>
+        <div class="review-crop-shell"><canvas id="reviewCrop"></canvas></div>
+        <div id="reviewOptions" class="option-row"></div>
+        <label class="field review-manual"><span>Correção manual</span><input id="reviewManual" type="text" autocomplete="off"></label>
+        <button id="reviewSave" class="primary-button compact" type="button">Salvar correção</button>
+      </section>
       <details class="diagnostics"><summary>Ver leituras individuais</summary><div id="passesList"></div></details>
     </section>
 
     <section class="card privacy-card"><h2>Privacidade e custo</h2><p>O OCR roda com WebAssembly no navegador. Não há API paga por imagem. O navegador só baixa os arquivos do motor OCR e dos idiomas quando necessário.</p></section>
   </main>
-  <footer style="text-align:center;padding:4px 16px 28px;color:#8b93a7;font-size:12px">Supertexto · v0.1.8 · build compact-compare</footer>
+  <footer style="text-align:center;padding:4px 16px 28px;color:#8b93a7;font-size:12px">Supertexto · v0.1.9 · build visual-review</footer>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 </body>
 </html>
