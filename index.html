@@ -98,7 +98,7 @@
           <textarea id="appleText" rows="5" placeholder="O texto do iPhone deve aparecer aqui automaticamente. Cole manualmente apenas se o retorno falhar."></textarea>
         </label>
         <div id="comparisonSummary" class="comparison-summary hidden"></div>
-        <div id="comparisonList" class="comparison-list hidden"></div>
+        <details id="comparisonDetails" class="diagnostics comparison-details hidden"><summary id="comparisonDetailsSummary">Ver comparação detalhada</summary><div id="comparisonList" class="comparison-list"></div></details>
       </section>
       <div id="uncertainPanel" class="uncertain-panel hidden">
         <h3>Trechos para conferir</h3><p>Toque em uma opção para substituir o texto escolhido pelo consenso.</p>
@@ -109,7 +109,7 @@
 
     <section class="card privacy-card"><h2>Privacidade e custo</h2><p>O OCR roda com WebAssembly no navegador. Não há API paga por imagem. O navegador só baixa os arquivos do motor OCR e dos idiomas quando necessário.</p></section>
   </main>
-  <footer style="text-align:center;padding:4px 16px 28px;color:#8b93a7;font-size:12px">Supertexto · v0.1.7 · build f861601</footer>
+  <footer style="text-align:center;padding:4px 16px 28px;color:#8b93a7;font-size:12px">Supertexto · v0.1.8 · build compact-compare</footer>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 </body>
 </html>
