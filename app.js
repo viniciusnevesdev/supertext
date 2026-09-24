@@ -8,7 +8,7 @@
     prog:q('#progressPanel'), label:q('#progressLabel'), pct:q('#progressPercent'), bar:q('#progressBar'), detail:q('#progressDetail'),
     result:q('#resultSection'), text:q('#resultText'), score:q('#overallScore'), high:q('#highCount'), med:q('#mediumCount'), low:q('#lowCount'),
     copy:q('#copyButton'), toggle:q('#toggleOverlayButton'), unsure:q('#uncertainPanel'), unsureList:q('#uncertainList'), passes:q('#passesList'), toast:q('#toast'),
-    shareShortcut:q('#shareShortcutButton'), pasteApple:q('#pasteAppleButton'), appleText:q('#appleText'), compareBadge:q('#appleCompareBadge'), compareSummary:q('#comparisonSummary'), compareList:q('#comparisonList')
+    shareShortcut:q('#shareShortcutButton'), pasteApple:q('#pasteAppleButton'), appleText:q('#appleText'), compareBadge:q('#appleCompareBadge'), compareSummary:q('#comparisonSummary'), compareDetails:q('#comparisonDetails'), compareDetailsSummary:q('#comparisonDetailsSummary'), compareList:q('#comparisonList')
   };
   const S = { base:null, file:null, worker:null, workerLang:null, running:false, passes:[], words:[], overlay:true, pass:0, passCount:3 };
   const PSM = { general:'3', document:'6', interface:'11', ingredients:'6' };
@@ -154,9 +154,10 @@
     E.compareBadge.className='compare-badge '+(pct>=90?'high':pct>=72?'medium':'low');
     E.compareSummary.textContent='';
     const strong=document.createElement('strong');strong.textContent=pct+'% de concordância';
-    const detail=document.createElement('span');detail.textContent=agree+' iguais · '+near+' parecidos · '+dis+' divergentes · '+onlyP+' só no PWA · '+onlyA+' só no iPhone';
+    const review=rows.filter(r=>r.kind==='disagree'||r.kind==='pwa-only'||r.kind==='apple-only'||(r.kind==='near'&&r.confidence!=null&&r.confidence<62));
+    const detail=document.createElement('span');detail.textContent=review.length?review.length+' trecho'+(review.length===1?'':'s')+' para conferir':'Nenhuma divergência importante para conferir';
     E.compareSummary.append(strong,detail);E.compareSummary.classList.remove('hidden');E.compareList.innerHTML='';
-    rows.filter(r=>r.kind!=='agree'||(r.confidence!=null&&r.confidence<82)).slice(0,60).forEach(r=>{
+    review.slice(0,40).forEach(r=>{
       const d=document.createElement('div');d.className='compare-row '+r.kind;
       const label=document.createElement('div');label.className='compare-label';
       label.textContent=r.kind==='agree'?'Concordam, mas o PWA está inseguro':r.kind==='near'?'Quase iguais':r.kind==='disagree'?'Discordância':r.kind==='pwa-only'?'Só o Supertexto detectou':'Só o iPhone detectou';
@@ -164,7 +165,7 @@
       addComparePair(pair,'PWA',r.pwa,r.confidence);addComparePair(pair,'iPhone',r.apple,null);
       d.append(label,pair);E.compareList.appendChild(d);
     });
-    E.compareList.classList.toggle('hidden',!E.compareList.children.length);
+    E.compareDetails.classList.toggle('hidden',!review.length);E.compareDetails.open=false;E.compareDetailsSummary.textContent='Ver comparação detalhada ('+review.length+')';
     saveSession();
   }
 
