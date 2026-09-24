@@ -32,8 +32,13 @@ A interface também aceita o texto produzido pela ação nativa “Extrair Texto
 
 1. rode o OCR do Supertexto;
 2. toque em **Enviar ao Atalho** e escolha **Supertexto — OCR Apple**;
-3. o atalho extrai o texto localmente no iPhone, copia o resultado e reabre o Supertexto;
-4. toque em **Colar OCR do iPhone**;
-5. o app mostra concordâncias, divergências, texto visto apenas pelo PWA e texto visto apenas pelo iPhone.
+3. o atalho extrai o texto localmente no iPhone, codifica o texto para URL e reabre o Supertexto;
+4. o PWA recebe esse texto automaticamente pelo fragmento `#apple=` da URL, remove o fragmento da barra de endereço e inicia a comparação;
+5. **Colar manualmente** fica disponível apenas como fallback se o retorno automático falhar.
 
 O último resultado do Supertexto é guardado localmente por até 24 horas para sobreviver ao retorno do Atalhos.
+
+
+### Privacidade do retorno automático
+
+O texto do OCR do iPhone é enviado ao PWA no **fragmento da URL** (a parte depois de `#`). Fragmentos não são enviados ao servidor HTTP do GitHub Pages. Assim que o PWA lê o texto, ele remove o fragmento da URL com `history.replaceState`.
