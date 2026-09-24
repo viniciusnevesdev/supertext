@@ -111,12 +111,13 @@
         <label class="field review-manual"><span>Correção manual</span><input id="reviewManual" type="text" autocomplete="off"></label>
         <button id="reviewSave" class="primary-button compact" type="button">Salvar correção</button>
       </section>
+      <section class="learning-panel"><div><div class="eyebrow">APRENDIZADO LOCAL</div><strong><span id="learningCount">0</span> correções aprendidas</strong><small><span id="learningPairs">0</span> padrões de correção guardados neste navegador.</small></div><button id="clearLearning" class="secondary-button compact" type="button">Apagar aprendizado</button></section>
       <details class="diagnostics"><summary>Ver leituras individuais</summary><div id="passesList"></div></details>
     </section>
 
     <section class="card privacy-card"><h2>Privacidade e custo</h2><p>O OCR roda com WebAssembly no navegador. Não há API paga por imagem. O navegador só baixa os arquivos do motor OCR e dos idiomas quando necessário.</p></section>
   </main>
-  <footer style="text-align:center;padding:4px 16px 28px;color:#8b93a7;font-size:12px">Supertexto · v0.2.0 · build apple-visual-review</footer>
+  <footer style="text-align:center;padding:4px 16px 28px;color:#8b93a7;font-size:12px">Supertexto · v0.2.1 · build local-learning</footer>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 </body>
 </html>
