@@ -179,7 +179,21 @@
   E.shareShortcut.onclick=shareToShortcut;
   E.pasteApple.onclick=pasteApple;
   E.appleText.addEventListener('change',()=>{if(E.appleText.value.trim())compareApple();});
-  const returning=new URLSearchParams(location.search).get('apple')==='clipboard';
+  function importAppleFromURL(){
+    if(!location.hash.startsWith('#apple='))return false;
+    let value=location.hash.slice(7);
+    try{value=decodeURIComponent(value);}catch(_){}
+    if(!value.trim())return false;
+    restoreSession();
+    E.appleText.value=value;
+    compareApple();
+    try{history.replaceState(null,'',location.pathname+location.search);}catch(_){}
+    setTimeout(()=>toast('OCR do iPhone recebido e comparado.'),180);
+    return true;
+  }
+
+  const imported=importAppleFromURL();
+  const returning=!imported&&new URLSearchParams(location.search).get('apple')==='clipboard';
   if(returning){restoreSession();setTimeout(()=>toast('Toque em “Colar OCR do iPhone”.'),250);}
   if('serviceWorker' in navigator&&location.protocol.startsWith('http'))addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(console.warn));
 })();
