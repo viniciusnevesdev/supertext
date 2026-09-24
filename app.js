@@ -7,7 +7,7 @@
     mode:q('#modeSelect'), lang:q('#languageSelect'), extra:q('#extraPrecision'), vocab:q('#customVocabulary'), analyze:q('#analyzeButton'),
     prog:q('#progressPanel'), label:q('#progressLabel'), pct:q('#progressPercent'), bar:q('#progressBar'), detail:q('#progressDetail'),
     result:q('#resultSection'), text:q('#resultText'), score:q('#overallScore'), high:q('#highCount'), med:q('#mediumCount'), low:q('#lowCount'),
-    copy:q('#copyButton'), toggle:q('#toggleOverlayButton'), unsure:q('#uncertainPanel'), unsureList:q('#uncertainList'), passes:q('#passesList'), toast:q('#toast'),
+    copy:q('#copyButton'), toggle:q('#toggleOverlayButton'), unsure:q('#uncertainPanel'), unsureList:q('#uncertainList'), reviewEditor:q('#reviewEditor'), reviewCrop:q('#reviewCrop'), reviewWord:q('#reviewWord'), reviewConfidence:q('#reviewConfidence'), reviewOptions:q('#reviewOptions'), reviewManual:q('#reviewManual'), reviewSave:q('#reviewSave'), reviewClose:q('#reviewClose'), passes:q('#passesList'), toast:q('#toast'),
     shareShortcut:q('#shareShortcutButton'), pasteApple:q('#pasteAppleButton'), appleText:q('#appleText'), compareBadge:q('#appleCompareBadge'), compareSummary:q('#comparisonSummary'), compareDetails:q('#comparisonDetails'), compareDetailsSummary:q('#comparisonDetailsSummary'), compareList:q('#comparisonList')
   };
   const S = { base:null, file:null, worker:null, workerLang:null, running:false, passes:[], words:[], overlay:true, pass:0, passCount:3 };
@@ -65,10 +65,21 @@
   function lines(words){const arr=[...words].sort((a,b)=>a.box.y0-b.box.y0||a.box.x0-b.box.x0),ls=[];for(const w of arr){const cy=(w.box.y0+w.box.y1)/2,h=w.box.y1-w.box.y0;let l=ls.find(x=>Math.abs(x.cy-cy)<=Math.max(x.h,h)*.65);if(!l){l={cy,h,words:[]};ls.push(l);}l.words.push(w);l.cy=(l.cy*(l.words.length-1)+cy)/l.words.length;l.h=Math.max(l.h,h);}ls.sort((a,b)=>a.cy-b.cy);ls.forEach(l=>l.words.sort((a,b)=>a.box.x0-b.box.x0));return ls;}
   function textFrom(words){return lines(words).map(l=>l.words.map(w=>w.text).join(' ').replace(/\s+([,.;:!?%\])}])/g,'$1')).join('\n').trim();}
   function cls(n){return n>=82?'high':n>=62?'medium':'low';}
+  function openReview(w){
+    if(!S.base)return;
+    const pad=Math.max(18,Math.round((w.box.y1-w.box.y0)*2.2)),x=Math.max(0,w.box.x0-pad),y=Math.max(0,w.box.y0-pad),rw=Math.min(S.base.width-x,w.box.x1-w.box.x0+pad*2),rh=Math.min(S.base.height-y,w.box.y1-w.box.y0+pad*2);
+    E.reviewCrop.width=rw;E.reviewCrop.height=rh;const cx=E.reviewCrop.getContext('2d');cx.drawImage(S.base,x,y,rw,rh,0,0,rw,rh);
+    cx.strokeStyle=w.confidence>=82?'#38d996':w.confidence>=62?'#f4bf4f':'#ff6577';cx.lineWidth=Math.max(2,rw/180);cx.strokeRect(w.box.x0-x,w.box.y0-y,w.box.x1-w.box.x0,w.box.y1-w.box.y0);
+    E.reviewWord.textContent=w.text;E.reviewConfidence.textContent=Math.round(w.confidence)+'% confiança';E.reviewManual.value=w.text;E.reviewOptions.innerHTML='';
+    const opts=[w.text,...w.alts.map(x=>x.text)].filter((v,i,s)=>v&&s.indexOf(v)===i);
+    opts.forEach(v=>{const b=document.createElement('button');b.type='button';b.className='option-chip'+(v===w.text?' selected':'');b.textContent=v;b.onclick=()=>{E.reviewManual.value=v;[...E.reviewOptions.children].forEach(x=>x.classList.toggle('selected',x===b));};E.reviewOptions.appendChild(b);});
+    E.reviewSave.onclick=()=>{const v=E.reviewManual.value.trim();if(v){w.text=v;w.confidence=Math.max(w.confidence,95);E.reviewEditor.classList.add('hidden');render();toast('Correção salva.');}};
+    E.reviewEditor.classList.remove('hidden');E.reviewEditor.scrollIntoView({behavior:'smooth',block:'center'});
+  }
   function render(){
-    E.text.value=textFrom(S.words);E.overlay.innerHTML='';const ns='http://www.w3.org/2000/svg';S.words.forEach(w=>{const r=document.createElementNS(ns,'rect');r.setAttribute('x',w.box.x0-2);r.setAttribute('y',w.box.y0-2);r.setAttribute('width',w.box.x1-w.box.x0+4);r.setAttribute('height',w.box.y1-w.box.y0+4);r.setAttribute('class',cls(w.confidence));E.overlay.appendChild(r);});
+    E.text.value=textFrom(S.words);E.overlay.innerHTML='';const ns='http://www.w3.org/2000/svg';S.words.forEach(w=>{const r=document.createElementNS(ns,'rect');r.setAttribute('x',w.box.x0-2);r.setAttribute('y',w.box.y0-2);r.setAttribute('width',w.box.x1-w.box.x0+4);r.setAttribute('height',w.box.y1-w.box.y0+4);r.setAttribute('class',cls(w.confidence));r.dataset.wordId=w.id;r.addEventListener('click',()=>openReview(w));E.overlay.appendChild(r);});
     const hi=S.words.filter(w=>w.confidence>=82).length,me=S.words.filter(w=>w.confidence>=62&&w.confidence<82).length,lo=S.words.length-hi-me,avg=S.words.length?Math.round(S.words.reduce((s,w)=>s+w.confidence,0)/S.words.length):0;E.high.textContent=hi;E.med.textContent=me;E.low.textContent=lo;E.score.textContent=avg+'% confiança';E.score.style.color=avg>=82?'var(--green)':avg>=62?'var(--yellow)':'var(--red)';
-    const unsure=S.words.filter(w=>w.confidence<82||w.alts.length>1).sort((a,b)=>a.confidence-b.confidence).slice(0,25);E.unsureList.innerHTML='';E.unsure.classList.toggle('hidden',!unsure.length);unsure.forEach(w=>{const c=document.createElement('div');c.className='uncertain-card';const title=document.createElement('div');title.className='uncertain-top';title.textContent=w.text+'  ·  '+Math.round(w.confidence)+'%';const row=document.createElement('div');row.className='option-row';w.alts.forEach(a=>{const b=document.createElement('button');b.className='option-chip'+(norm(a.text)===norm(w.text)?' selected':'');b.textContent=a.text;b.onclick=()=>{w.text=a.text;w.confidence=Math.max(w.confidence,a.confidence);render();toast('Trecho atualizado.');};row.appendChild(b);});c.append(title,row);E.unsureList.appendChild(c);});
+    const unsure=S.words.filter(w=>w.confidence<82||w.alts.length>1).sort((a,b)=>a.confidence-b.confidence);E.unsureList.innerHTML='';E.unsure.classList.toggle('hidden',!unsure.length);unsure.slice(0,12).forEach(w=>{const b=document.createElement('button');b.type='button';b.className='review-jump '+cls(w.confidence);b.textContent=w.text+' · '+Math.round(w.confidence)+'%';b.onclick=()=>openReview(w);E.unsureList.appendChild(b);});
     E.passes.innerHTML='';S.passes.forEach(p=>{const d=document.createElement('div');d.className='pass-card';const pre=document.createElement('pre');pre.textContent=p.text||'(nenhum texto)';const h=document.createElement('strong');h.textContent=p.kind+' · '+Math.round(p.avg)+'% OCR';d.append(h,pre);E.passes.appendChild(d);});
     saveSession();
     E.result.classList.remove('hidden');E.result.scrollIntoView({behavior:'smooth'});
@@ -190,6 +201,7 @@
   E.file.onchange=e=>load(e.target.files&&e.target.files[0]);E.camera.onchange=e=>load(e.target.files&&e.target.files[0]);E.analyze.onclick=analyze;
   E.copy.onclick=async()=>{if(!E.text.value.trim())return;try{await navigator.clipboard.writeText(E.text.value);toast('Texto copiado.');}catch(e){E.text.select();document.execCommand('copy');toast('Texto copiado.');}};
   E.toggle.onclick=()=>{S.overlay=!S.overlay;E.overlay.style.display=S.overlay?'':'none';E.toggle.textContent=S.overlay?'Ocultar marcações':'Mostrar marcações';};
+  E.reviewClose.onclick=()=>E.reviewEditor.classList.add('hidden');
   E.shareShortcut.onclick=shareToShortcut;
   E.pasteApple.onclick=pasteApple;
   E.appleText.addEventListener('change',()=>{if(E.appleText.value.trim())compareApple();});
