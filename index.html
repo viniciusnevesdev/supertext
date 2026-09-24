@@ -82,6 +82,24 @@
         <button id="copyButton" class="primary-button compact" type="button">Copiar texto</button>
         <button id="toggleOverlayButton" class="secondary-button compact" type="button">Ocultar marcações</button>
       </div>
+
+      <section id="appleCompareSection" class="apple-compare">
+        <div class="apple-compare-head">
+          <div><div class="eyebrow">SEGUNDA OPINIÃO</div><h3>Comparar com o OCR do iPhone</h3></div>
+          <span id="appleCompareBadge" class="compare-badge">aguardando</span>
+        </div>
+        <p>Envie a mesma imagem ao atalho. Ele usa “Extrair Texto da Imagem” do iPhone, copia o resultado e volta para o Supertexto.</p>
+        <div class="action-row compare-actions">
+          <button id="shareShortcutButton" class="primary-button compact" type="button">Enviar ao Atalho</button>
+          <button id="pasteAppleButton" class="secondary-button compact" type="button">Colar OCR do iPhone</button>
+        </div>
+        <label class="field apple-field">
+          <span>Texto identificado pelo iPhone</span>
+          <textarea id="appleText" rows="5" placeholder="O texto do atalho aparecerá aqui. Você também pode colar manualmente."></textarea>
+        </label>
+        <div id="comparisonSummary" class="comparison-summary hidden"></div>
+        <div id="comparisonList" class="comparison-list hidden"></div>
+      </section>
       <div id="uncertainPanel" class="uncertain-panel hidden">
         <h3>Trechos para conferir</h3><p>Toque em uma opção para substituir o texto escolhido pelo consenso.</p>
         <div id="uncertainList" class="uncertain-list"></div>
