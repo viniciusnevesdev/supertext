@@ -7,9 +7,10 @@
     mode:q('#modeSelect'), lang:q('#languageSelect'), extra:q('#extraPrecision'), vocab:q('#customVocabulary'), analyze:q('#analyzeButton'),
     prog:q('#progressPanel'), label:q('#progressLabel'), pct:q('#progressPercent'), bar:q('#progressBar'), detail:q('#progressDetail'),
     result:q('#resultSection'), text:q('#resultText'), score:q('#overallScore'), high:q('#highCount'), med:q('#mediumCount'), low:q('#lowCount'),
-    copy:q('#copyButton'), toggle:q('#toggleOverlayButton'), unsure:q('#uncertainPanel'), unsureList:q('#uncertainList'), passes:q('#passesList'), toast:q('#toast')
+    copy:q('#copyButton'), toggle:q('#toggleOverlayButton'), unsure:q('#uncertainPanel'), unsureList:q('#uncertainList'), passes:q('#passesList'), toast:q('#toast'),
+    shareShortcut:q('#shareShortcutButton'), pasteApple:q('#pasteAppleButton'), appleText:q('#appleText'), compareBadge:q('#appleCompareBadge'), compareSummary:q('#comparisonSummary'), compareList:q('#comparisonList')
   };
-  const S = { base:null, worker:null, workerLang:null, running:false, passes:[], words:[], overlay:true, pass:0, passCount:3 };
+  const S = { base:null, file:null, worker:null, workerLang:null, running:false, passes:[], words:[], overlay:true, pass:0, passCount:3 };
   const PSM = { general:'3', document:'6', interface:'11', ingredients:'6' };
   const INCI = ['aqua','water','glycerin','parfum','fragrance','phenoxyethanol','ethylhexylglycerin','hydroxyethylcellulose','carbomer','tocopherol','citric acid','sodium benzoate','potassium sorbate','benzyl alcohol','limonene','linalool','citral','geraniol','citronellol','coumarin','cetearyl alcohol','cetyl alcohol','stearyl alcohol','dimethicone','amodimethicone','behentrimonium chloride','cetrimonium chloride','panthenol','niacinamide','sodium hyaluronate','hyaluronic acid','urea','propylene glycol','butylene glycol','disodium edta','sodium hydroxide','methylisothiazolinone','methylchloroisothiazolinone','salicylic acid','glycolic acid','lactic acid','ascorbic acid'];
 
@@ -27,7 +28,7 @@
     const max=Math.max(img.naturalWidth,img.naturalHeight), target=Math.min(2400,Math.max(1500,max<1600?Math.round(max*1.5):max)), scale=Math.min(2,target/max);
     const w=Math.round(img.naturalWidth*scale), h=Math.round(img.naturalHeight*scale), c=document.createElement('canvas'); c.width=w;c.height=h;
     const x=c.getContext('2d',{willReadFrequently:true}); x.imageSmoothingQuality='high'; x.drawImage(img,0,0,w,h); URL.revokeObjectURL(url);
-    S.base=c; S.passes=[]; S.words=[]; E.canvas.width=w;E.canvas.height=h;E.canvas.getContext('2d').drawImage(c,0,0); E.overlay.setAttribute('viewBox','0 0 '+w+' '+h); E.overlay.innerHTML='';
+    S.base=c; S.file=file; S.passes=[]; S.words=[]; E.canvas.width=w;E.canvas.height=h;E.canvas.getContext('2d').drawImage(c,0,0); E.overlay.setAttribute('viewBox','0 0 '+w+' '+h); E.overlay.innerHTML='';
     E.work.classList.remove('hidden');E.result.classList.add('hidden');E.prog.classList.add('hidden');E.file.value='';E.camera.value='';E.work.scrollIntoView({behavior:'smooth'});
   }
 
@@ -67,7 +68,107 @@
     E.text.value=textFrom(S.words);E.overlay.innerHTML='';const ns='http://www.w3.org/2000/svg';S.words.forEach(w=>{const r=document.createElementNS(ns,'rect');r.setAttribute('x',w.box.x0-2);r.setAttribute('y',w.box.y0-2);r.setAttribute('width',w.box.x1-w.box.x0+4);r.setAttribute('height',w.box.y1-w.box.y0+4);r.setAttribute('class',cls(w.confidence));E.overlay.appendChild(r);});
     const hi=S.words.filter(w=>w.confidence>=82).length,me=S.words.filter(w=>w.confidence>=62&&w.confidence<82).length,lo=S.words.length-hi-me,avg=S.words.length?Math.round(S.words.reduce((s,w)=>s+w.confidence,0)/S.words.length):0;E.high.textContent=hi;E.med.textContent=me;E.low.textContent=lo;E.score.textContent=avg+'% confiança';E.score.style.color=avg>=82?'var(--green)':avg>=62?'var(--yellow)':'var(--red)';
     const unsure=S.words.filter(w=>w.confidence<82||w.alts.length>1).sort((a,b)=>a.confidence-b.confidence).slice(0,25);E.unsureList.innerHTML='';E.unsure.classList.toggle('hidden',!unsure.length);unsure.forEach(w=>{const c=document.createElement('div');c.className='uncertain-card';const title=document.createElement('div');title.className='uncertain-top';title.textContent=w.text+'  ·  '+Math.round(w.confidence)+'%';const row=document.createElement('div');row.className='option-row';w.alts.forEach(a=>{const b=document.createElement('button');b.className='option-chip'+(norm(a.text)===norm(w.text)?' selected':'');b.textContent=a.text;b.onclick=()=>{w.text=a.text;w.confidence=Math.max(w.confidence,a.confidence);render();toast('Trecho atualizado.');};row.appendChild(b);});c.append(title,row);E.unsureList.appendChild(c);});
-    E.passes.innerHTML='';S.passes.forEach(p=>{const d=document.createElement('div');d.className='pass-card';const pre=document.createElement('pre');pre.textContent=p.text||'(nenhum texto)';const h=document.createElement('strong');h.textContent=p.kind+' · '+Math.round(p.avg)+'% OCR';d.append(h,pre);E.passes.appendChild(d);});E.result.classList.remove('hidden');E.result.scrollIntoView({behavior:'smooth'});
+    E.passes.innerHTML='';S.passes.forEach(p=>{const d=document.createElement('div');d.className='pass-card';const pre=document.createElement('pre');pre.textContent=p.text||'(nenhum texto)';const h=document.createElement('strong');h.textContent=p.kind+' · '+Math.round(p.avg)+'% OCR';d.append(h,pre);E.passes.appendChild(d);});
+    saveSession();
+    E.result.classList.remove('hidden');E.result.scrollIntoView({behavior:'smooth'});
+  }
+
+  function saveSession(){
+    if(!S.words.length)return;
+    try{localStorage.setItem('supertexto:lastResult',JSON.stringify({at:Date.now(),words:S.words,text:E.text.value}));}catch(_){}
+  }
+
+  function restoreSession(){
+    try{
+      const raw=localStorage.getItem('supertexto:lastResult');if(!raw)return false;
+      const data=JSON.parse(raw);if(!data||!Array.isArray(data.words)||Date.now()-data.at>86400000)return false;
+      S.words=data.words;E.text.value=data.text||textFrom(S.words);
+      const hi=S.words.filter(w=>w.confidence>=82).length,me=S.words.filter(w=>w.confidence>=62&&w.confidence<82).length,lo=S.words.length-hi-me;
+      const avg=S.words.length?Math.round(S.words.reduce((s,w)=>s+w.confidence,0)/S.words.length):0;
+      E.high.textContent=hi;E.med.textContent=me;E.low.textContent=lo;E.score.textContent=avg+'% confiança';
+      E.score.style.color=avg>=82?'var(--green)':avg>=62?'var(--yellow)':'var(--red)';
+      E.result.classList.remove('hidden');
+      return true;
+    }catch(_){return false;}
+  }
+
+  function pwaTokenList(){
+    return lines(S.words).flatMap(l=>l.words).map(w=>({text:w.text,confidence:Math.round(w.confidence)}));
+  }
+
+  function plainTokens(t){
+    return (t||'').match(/[\p{L}\p{N}%+./:@#'&-]+/gu)||[];
+  }
+
+  function alignApple(){
+    const A=pwaTokenList(),B=plainTokens(E.appleText.value),n=A.length,m=B.length;
+    const dp=Array.from({length:n+1},()=>Array(m+1).fill(0)),op=Array.from({length:n+1},()=>Array(m+1).fill(''));
+    for(let i=1;i<=n;i++){dp[i][0]=i;op[i][0]='pwa';}
+    for(let j=1;j<=m;j++){dp[0][j]=j;op[0][j]='apple';}
+    for(let i=1;i<=n;i++)for(let j=1;j<=m;j++){
+      const s=sim(A[i-1].text,B[j-1]),sub=dp[i-1][j-1]+(s===1?0:s>=.82?.35:1),del=dp[i-1][j]+1,ins=dp[i][j-1]+1,min=Math.min(sub,del,ins);
+      dp[i][j]=min;op[i][j]=min===sub?'both':min===del?'pwa':'apple';
+    }
+    const rows=[];let i=n,j=m;
+    while(i||j){
+      const kind=op[i][j];
+      if(kind==='both'){
+        const p=A[i-1],a=B[j-1],s=sim(p.text,a);
+        rows.push({pwa:p.text,apple:a,confidence:p.confidence,kind:s===1?'agree':s>=.82?'near':'disagree'});i--;j--;
+      }else if(kind==='pwa'){
+        const p=A[i-1];rows.push({pwa:p.text,apple:'',confidence:p.confidence,kind:'pwa-only'});i--;
+      }else{
+        rows.push({pwa:'',apple:B[j-1],confidence:null,kind:'apple-only'});j--;
+      }
+    }
+    return rows.reverse();
+  }
+
+  function addComparePair(parent,label,value,confidence){
+    const span=document.createElement('span'),b=document.createElement('b');b.textContent=label;span.appendChild(b);
+    span.appendChild(document.createTextNode(value||'—'));
+    if(confidence!=null){const small=document.createElement('small');small.textContent=' '+confidence+'%';span.appendChild(small);}
+    parent.appendChild(span);
+  }
+
+  function compareApple(){
+    const apple=E.appleText.value.trim();if(!apple)return;
+    if(!S.words.length&&!restoreSession()){toast('Faça primeiro a leitura no Supertexto.');return;}
+    const rows=alignApple(),both=rows.filter(r=>['agree','near','disagree'].includes(r.kind));
+    const agree=both.filter(r=>r.kind==='agree').length,near=both.filter(r=>r.kind==='near').length,dis=both.filter(r=>r.kind==='disagree').length;
+    const onlyP=rows.filter(r=>r.kind==='pwa-only').length,onlyA=rows.filter(r=>r.kind==='apple-only').length;
+    const pct=both.length?Math.round((agree+.5*near)/both.length*100):0;
+    E.compareBadge.textContent=pct+'% concordância';
+    E.compareBadge.className='compare-badge '+(pct>=90?'high':pct>=72?'medium':'low');
+    E.compareSummary.textContent='';
+    const strong=document.createElement('strong');strong.textContent=pct+'% de concordância';
+    const detail=document.createElement('span');detail.textContent=agree+' iguais · '+near+' parecidos · '+dis+' divergentes · '+onlyP+' só no PWA · '+onlyA+' só no iPhone';
+    E.compareSummary.append(strong,detail);E.compareSummary.classList.remove('hidden');E.compareList.innerHTML='';
+    rows.filter(r=>r.kind!=='agree'||(r.confidence!=null&&r.confidence<82)).slice(0,60).forEach(r=>{
+      const d=document.createElement('div');d.className='compare-row '+r.kind;
+      const label=document.createElement('div');label.className='compare-label';
+      label.textContent=r.kind==='agree'?'Concordam, mas o PWA está inseguro':r.kind==='near'?'Quase iguais':r.kind==='disagree'?'Discordância':r.kind==='pwa-only'?'Só o Supertexto detectou':'Só o iPhone detectou';
+      const pair=document.createElement('div');pair.className='compare-pair';
+      addComparePair(pair,'PWA',r.pwa,r.confidence);addComparePair(pair,'iPhone',r.apple,null);
+      d.append(label,pair);E.compareList.appendChild(d);
+    });
+    E.compareList.classList.toggle('hidden',!E.compareList.children.length);
+    saveSession();
+  }
+
+  async function shareToShortcut(){
+    if(!S.file){toast('Escolha a imagem novamente para enviá-la.');return;}
+    saveSession();
+    const payload={files:[S.file],title:'Supertexto — OCR Apple',text:'Execute o atalho “Supertexto — OCR Apple”.'};
+    if(!navigator.share||!navigator.canShare||!navigator.canShare({files:[S.file]})){toast('O compartilhamento de arquivo não está disponível aqui.');return;}
+    try{await navigator.share(payload);}catch(e){if(e&&e.name!=='AbortError')toast('Não foi possível abrir o compartilhamento.');}
+  }
+
+  async function pasteApple(){
+    try{
+      const t=await navigator.clipboard.readText();if(!t.trim())return toast('A área de transferência está vazia.');
+      E.appleText.value=t;compareApple();
+    }catch(_){toast('Toque no campo e cole o texto manualmente.');}
   }
 
   async function analyze(){if(S.running||!S.base)return;S.running=true;E.analyze.disabled=true;E.result.classList.add('hidden');try{const kinds=['original','contrast','threshold'];if(E.extra.checked)kinds.push('strong');S.passCount=kinds.length;S.passes=[];const w=await worker(E.lang.value);for(let i=0;i<kinds.length;i++){progress(8+i/kinds.length*84,'Leitura '+(i+1)+' de '+kinds.length,'Comparando versões da mesma imagem.');S.passes.push(await run(w,kinds[i],i));}progress(95,'Comparando leituras…','Criando consenso palavra por palavra.');S.words=consensus(S.passes);progress(100,'Concluído','Verde = alta confiança; amarelo/vermelho = confira.');render();}catch(e){console.error(e);progress(0,'Não foi possível concluir',e.message||'Erro inesperado.');toast('Falha no OCR.');}finally{S.running=false;E.analyze.disabled=false;}}
@@ -75,5 +176,10 @@
   E.file.onchange=e=>load(e.target.files&&e.target.files[0]);E.camera.onchange=e=>load(e.target.files&&e.target.files[0]);E.analyze.onclick=analyze;
   E.copy.onclick=async()=>{if(!E.text.value.trim())return;try{await navigator.clipboard.writeText(E.text.value);toast('Texto copiado.');}catch(e){E.text.select();document.execCommand('copy');toast('Texto copiado.');}};
   E.toggle.onclick=()=>{S.overlay=!S.overlay;E.overlay.style.display=S.overlay?'':'none';E.toggle.textContent=S.overlay?'Ocultar marcações':'Mostrar marcações';};
+  E.shareShortcut.onclick=shareToShortcut;
+  E.pasteApple.onclick=pasteApple;
+  E.appleText.addEventListener('change',()=>{if(E.appleText.value.trim())compareApple();});
+  const returning=new URLSearchParams(location.search).get('apple')==='clipboard';
+  if(returning){restoreSession();setTimeout(()=>toast('Toque em “Colar OCR do iPhone”.'),250);}
   if('serviceWorker' in navigator&&location.protocol.startsWith('http'))addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(console.warn));
 })();
