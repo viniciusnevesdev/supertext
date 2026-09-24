@@ -116,7 +116,7 @@
   }
 
   function pwaTokenList(){
-    return lines(S.words).flatMap(l=>l.words).map(w=>({text:w.text,confidence:Math.round(w.confidence)}));
+    return lines(S.words).flatMap(l=>l.words).map(w=>({id:w.id,text:w.text,confidence:Math.round(w.confidence),word:w}));
   }
 
   function plainTokens(t){
@@ -137,9 +137,9 @@
       const kind=op[i][j];
       if(kind==='both'){
         const p=A[i-1],a=B[j-1],s=sim(p.text,a);
-        rows.push({pwa:p.text,apple:a,confidence:p.confidence,kind:s===1?'agree':s>=.82?'near':'disagree'});i--;j--;
+        rows.push({pwa:p.text,apple:a,confidence:p.confidence,word:p.word,kind:s===1?'agree':s>=.82?'near':'disagree'});i--;j--;
       }else if(kind==='pwa'){
-        const p=A[i-1];rows.push({pwa:p.text,apple:'',confidence:p.confidence,kind:'pwa-only'});i--;
+        const p=A[i-1];rows.push({pwa:p.text,apple:'',confidence:p.confidence,word:p.word,kind:'pwa-only'});i--;
       }else{
         rows.push({pwa:'',apple:B[j-1],confidence:null,kind:'apple-only'});j--;
       }
@@ -174,6 +174,7 @@
       label.textContent=r.kind==='agree'?'Concordam, mas o PWA está inseguro':r.kind==='near'?'Quase iguais':r.kind==='disagree'?'Discordância':r.kind==='pwa-only'?'Só o Supertexto detectou':'Só o iPhone detectou';
       const pair=document.createElement('div');pair.className='compare-pair';
       addComparePair(pair,'PWA',r.pwa,r.confidence);addComparePair(pair,'iPhone',r.apple,null);
+      if(r.word){d.classList.add('clickable');d.setAttribute('role','button');d.tabIndex=0;const open=()=>openReview(r.word);d.addEventListener('click',open);d.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}});}
       d.append(label,pair);E.compareList.appendChild(d);
     });
     E.compareDetails.classList.toggle('hidden',!review.length);E.compareDetails.open=false;E.compareDetailsSummary.textContent='Ver comparação detalhada ('+review.length+')';
@@ -196,7 +197,7 @@
     }catch(_){toast('Toque no campo e cole o texto manualmente.');}
   }
 
-  async function analyze(){if(S.running||!S.base)return;S.running=true;E.analyze.disabled=true;E.result.classList.add('hidden');try{const kinds=['original','contrast','threshold'];if(E.extra.checked)kinds.push('strong');S.passCount=kinds.length;S.passes=[];const w=await worker(E.lang.value);for(let i=0;i<kinds.length;i++){progress(8+i/kinds.length*84,'Leitura '+(i+1)+' de '+kinds.length,'Comparando versões da mesma imagem.');S.passes.push(await run(w,kinds[i],i));}progress(95,'Comparando leituras…','Criando consenso palavra por palavra.');S.words=consensus(S.passes);progress(100,'Concluído','Verde = alta confiança; amarelo/vermelho = confira.');render();setTimeout(()=>shareToShortcut(),350);}catch(e){console.error(e);progress(0,'Não foi possível concluir',e.message||'Erro inesperado.');toast('Falha no OCR.');}finally{S.running=false;E.analyze.disabled=false;}}
+  async function analyze(){if(S.running||!S.base)return;S.running=true;E.analyze.disabled=true;E.result.classList.add('hidden');try{const kinds=['original','contrast','threshold'];if(E.extra.checked)kinds.push('strong');S.passCount=kinds.length;S.passes=[];const w=await worker(E.lang.value);for(let i=0;i<kinds.length;i++){progress(8+i/kinds.length*84,'Leitura '+(i+1)+' de '+kinds.length,'Comparando versões da mesma imagem.');S.passes.push(await run(w,kinds[i],i));}progress(95,'Comparando leituras…','Criando consenso palavra por palavra.');S.words=consensus(S.passes);progress(100,'Concluído','Verde = alta confiança; amarelo/vermelho = confira.');render();}catch(e){console.error(e);progress(0,'Não foi possível concluir',e.message||'Erro inesperado.');toast('Falha no OCR.');}finally{S.running=false;E.analyze.disabled=false;}}
 
   E.file.onchange=e=>load(e.target.files&&e.target.files[0]);E.camera.onchange=e=>load(e.target.files&&e.target.files[0]);E.analyze.onclick=analyze;
   E.copy.onclick=async()=>{if(!E.text.value.trim())return;try{await navigator.clipboard.writeText(E.text.value);toast('Texto copiado.');}catch(e){E.text.select();document.execCommand('copy');toast('Texto copiado.');}};
@@ -217,6 +218,7 @@
     if(!value.trim())return false;
     const restored=restoreSession();
     const imageRestored=await restoreImageSession();
+    if(restored&&imageRestored){render();E.result.scrollIntoView({behavior:'auto',block:'start'});}
     E.appleText.value=value;
     compareApple();
     try{history.replaceState(null,'',location.pathname);}catch(_){}
