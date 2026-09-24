@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b1020">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Supertexto">
+  <title>Supertexto</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@6/dist/tesseract.min.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div><div class="eyebrow">OCR LOCAL</div><h1>Supertexto</h1></div>
+    <div class="privacy-badge" title="As imagens não são enviadas para um servidor de OCR."><span class="dot"></span>local</div>
+  </header>
+
+  <main>
+    <section class="card intro-card">
+      <h2>Leia o mesmo texto mais de uma vez.</h2>
+      <p>O app cria versões diferentes da imagem, roda OCR localmente e destaca onde as leituras concordam — e onde você deve conferir.</p>
+      <div class="picker-grid">
+        <label class="primary-button" for="fileInput"><span class="button-icon">▣</span>Escolher imagem</label>
+        <label class="secondary-button" for="cameraInput"><span class="button-icon">⌁</span>Usar câmera</label>
+        <input id="fileInput" class="sr-only" type="file" accept="image/*">
+        <input id="cameraInput" class="sr-only" type="file" accept="image/*" capture="environment">
+      </div>
+      <p class="fine-print">O primeiro uso precisa de internet para baixar o motor OCR e os idiomas. Depois, o processamento acontece no aparelho.</p>
+    </section>
+
+    <section id="workspace" class="card workspace hidden">
+      <div class="preview-shell">
+        <canvas id="previewCanvas" aria-label="Imagem selecionada"></canvas>
+        <svg id="overlay" class="overlay" aria-hidden="true"></svg>
+      </div>
+
+      <div class="controls-grid">
+        <label class="field"><span>Modo</span><select id="modeSelect">
+          <option value="general">Geral</option><option value="document">Documento</option>
+          <option value="interface">Tela / interface</option><option value="ingredients">Ingredientes / embalagem</option>
+        </select></label>
+        <label class="field"><span>Idioma</span><select id="languageSelect">
+          <option value="por+eng">Português + inglês</option><option value="por">Português</option><option value="eng">Inglês</option>
+        </select></label>
+      </div>
+
+      <label class="switch-row">
+        <div><strong>Precisão extra</strong><small>Adiciona uma quarta leitura mais agressiva. É mais lenta.</small></div>
+        <input id="extraPrecision" type="checkbox"><span class="switch" aria-hidden="true"></span>
+      </label>
+
+      <label class="field vocabulary-field">
+        <span>Palavras esperadas <em>opcional</em></span>
+        <textarea id="customVocabulary" rows="2" placeholder="Ex.: Hydroxyethylcellulose, Phenoxyethanol, cliente, total..."></textarea>
+        <small>Ajuda apenas na escolha entre leituras parecidas; não força uma palavra na imagem.</small>
+      </label>
+
+      <button id="analyzeButton" class="analyze-button" type="button">Ler com alta confiança</button>
+
+      <div id="progressPanel" class="progress-panel hidden" aria-live="polite">
+        <div class="progress-topline"><span id="progressLabel">Preparando…</span><span id="progressPercent">0%</span></div>
+        <div class="progress-track"><div id="progressBar" class="progress-bar"></div></div>
+        <p id="progressDetail">A imagem permanece no aparelho.</p>
+      </div>
+    </section>
+
+    <section id="resultSection" class="card results hidden">
+      <div class="results-heading"><div><div class="eyebrow">RESULTADO</div><h2>Texto reconhecido</h2></div><div id="overallScore" class="score-pill">—</div></div>
+      <div class="confidence-summary">
+        <div class="confidence-item high"><span id="highCount">0</span><small>alta</small></div>
+        <div class="confidence-item medium"><span id="mediumCount">0</span><small>revisar</small></div>
+        <div class="confidence-item low"><span id="lowCount">0</span><small>duvidosa</small></div>
+      </div>
+      <textarea id="resultText" class="result-text" spellcheck="false" aria-label="Texto reconhecido"></textarea>
+      <div class="action-row">
+        <button id="copyButton" class="primary-button compact" type="button">Copiar texto</button>
+        <button id="toggleOverlayButton" class="secondary-button compact" type="button">Ocultar marcações</button>
+      </div>
+      <div id="uncertainPanel" class="uncertain-panel hidden">
+        <h3>Trechos para conferir</h3><p>Toque em uma opção para substituir o texto escolhido pelo consenso.</p>
+        <div id="uncertainList" class="uncertain-list"></div>
+      </div>
+      <details class="diagnostics"><summary>Ver leituras individuais</summary><div id="passesList"></div></details>
+    </section>
+
+    <section class="card privacy-card"><h2>Privacidade e custo</h2><p>O OCR roda com WebAssembly no navegador. Não há API paga por imagem. O navegador só baixa os arquivos do motor OCR e dos idiomas quando necessário.</p></section>
+  </main>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
