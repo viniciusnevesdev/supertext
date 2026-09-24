@@ -73,6 +73,17 @@
     E.result.classList.remove('hidden');E.result.scrollIntoView({behavior:'smooth'});
   }
 
+  function imageDB(){
+    return new Promise((resolve,reject)=>{const r=indexedDB.open('supertexto-session',1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('data'))r.result.createObjectStore('data');};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});
+  }
+  async function saveImageSession(){
+    if(!S.file)return;
+    try{const db=await imageDB();await new Promise((resolve,reject)=>{const tx=db.transaction('data','readwrite');tx.objectStore('data').put({file:S.file,at:Date.now()},'lastImage');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});db.close();}catch(e){console.warn('Não foi possível persistir a imagem',e);}
+  }
+  async function restoreImageSession(){
+    try{const db=await imageDB();const data=await new Promise((resolve,reject)=>{const tx=db.transaction('data','readonly'),r=tx.objectStore('data').get('lastImage');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});db.close();if(!data||!data.file||Date.now()-data.at>86400000)return false;await load(data.file);return true;}catch(e){console.warn('Não foi possível restaurar a imagem',e);return false;}
+  }
+
   function saveSession(){
     if(!S.words.length)return;
     try{localStorage.setItem('supertexto:lastResult',JSON.stringify({at:Date.now(),words:S.words,text:E.text.value}));}catch(_){}
@@ -159,6 +170,7 @@
   async function shareToShortcut(){
     if(!S.file){toast('Escolha a imagem novamente para enviá-la.');return;}
     saveSession();
+    await saveImageSession();
     const payload={files:[S.file],title:'Supertexto — OCR Apple',text:'Execute o atalho “Supertexto — OCR Apple”.'};
     if(!navigator.share||!navigator.canShare||!navigator.canShare({files:[S.file]})){toast('O compartilhamento de arquivo não está disponível aqui.');return;}
     try{await navigator.share(payload);}catch(e){if(e&&e.name!=='AbortError')toast('Não foi possível abrir o compartilhamento.');}
@@ -179,12 +191,13 @@
   E.shareShortcut.onclick=shareToShortcut;
   E.pasteApple.onclick=pasteApple;
   E.appleText.addEventListener('change',()=>{if(E.appleText.value.trim())compareApple();});
-  function importAppleFromURL(){
+  async function importAppleFromURL(){
     if(!location.hash.startsWith('#apple='))return false;
     let value=location.hash.slice(7);
     try{value=decodeURIComponent(value);}catch(_){}
     if(!value.trim())return false;
     restoreSession();
+    await restoreImageSession();
     E.appleText.value=value;
     compareApple();
     try{history.replaceState(null,'',location.pathname+location.search);}catch(_){}
@@ -192,8 +205,10 @@
     return true;
   }
 
-  const imported=importAppleFromURL();
-  const returning=!imported&&new URLSearchParams(location.search).get('apple')==='clipboard';
-  if(returning){restoreSession();setTimeout(()=>toast('Toque em “Colar OCR do iPhone”.'),250);}
+  (async()=>{
+    const imported=await importAppleFromURL();
+    const returning=!imported&&new URLSearchParams(location.search).get('apple')==='clipboard';
+    if(returning){restoreSession();await restoreImageSession();setTimeout(()=>toast('Toque em “Colar OCR do iPhone”.'),250);}
+  })();
   if('serviceWorker' in navigator&&location.protocol.startsWith('http'))addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(console.warn));
 })();
