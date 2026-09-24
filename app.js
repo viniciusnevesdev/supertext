@@ -30,6 +30,7 @@
     const x=c.getContext('2d',{willReadFrequently:true}); x.imageSmoothingQuality='high'; x.drawImage(img,0,0,w,h); URL.revokeObjectURL(url);
     S.base=c; S.file=file; S.passes=[]; S.words=[]; E.canvas.width=w;E.canvas.height=h;E.canvas.getContext('2d').drawImage(c,0,0); E.overlay.setAttribute('viewBox','0 0 '+w+' '+h); E.overlay.innerHTML='';
     E.work.classList.remove('hidden');E.result.classList.add('hidden');E.prog.classList.add('hidden');E.file.value='';E.camera.value='';E.work.scrollIntoView({behavior:'smooth'});
+    await saveImageSession();
   }
 
   function variant(kind){
@@ -192,16 +193,21 @@
   E.pasteApple.onclick=pasteApple;
   E.appleText.addEventListener('change',()=>{if(E.appleText.value.trim())compareApple();});
   async function importAppleFromURL(){
-    if(!location.hash.startsWith('#apple='))return false;
-    let value=location.hash.slice(7);
+    let value='';
+    if(location.hash.startsWith('#apple='))value=location.hash.slice(7);
+    else{
+      const qApple=new URLSearchParams(location.search).get('apple');
+      if(qApple&&qApple!=='clipboard')value=qApple;
+    }
+    if(!value)return false;
     try{value=decodeURIComponent(value);}catch(_){}
     if(!value.trim())return false;
-    restoreSession();
-    await restoreImageSession();
+    const restored=restoreSession();
+    const imageRestored=await restoreImageSession();
     E.appleText.value=value;
     compareApple();
-    try{history.replaceState(null,'',location.pathname+location.search);}catch(_){}
-    setTimeout(()=>toast('OCR do iPhone recebido e comparado.'),180);
+    try{history.replaceState(null,'',location.pathname);}catch(_){}
+    setTimeout(()=>toast(restored&&imageRestored?'OCR do iPhone recebido e sessão restaurada.':'OCR do iPhone recebido; sessão anterior incompleta.'),180);
     return true;
   }
 
