@@ -24,3 +24,16 @@ O reconhecimento é executado localmente. No primeiro uso o navegador baixa o Ja
 Esta primeira versão não promete ser universalmente mais precisa que o Live Text da Apple. A vantagem é repetir o reconhecimento, comparar resultados e sinalizar incerteza em vez de apresentar todo o texto com a mesma aparência de certeza.
 
 É um site estático e pode ser servido por GitHub Pages, Vercel ou outra hospedagem HTTPS.
+
+
+## Comparação com OCR do iPhone
+
+A interface também aceita o texto produzido pela ação nativa “Extrair Texto da Imagem” do Atalhos.
+
+1. rode o OCR do Supertexto;
+2. toque em **Enviar ao Atalho** e escolha **Supertexto — OCR Apple**;
+3. o atalho extrai o texto localmente no iPhone, copia o resultado e reabre o Supertexto;
+4. toque em **Colar OCR do iPhone**;
+5. o app mostra concordâncias, divergências, texto visto apenas pelo PWA e texto visto apenas pelo iPhone.
+
+O último resultado do Supertexto é guardado localmente por até 24 horas para sobreviver ao retorno do Atalhos.
